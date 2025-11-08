@@ -36,8 +36,8 @@
         const { useState, useEffect } = React;
 
         // 🔥 НАСТРОЙКИ - ВСТАВЬТЕ СВОИ ДАННЫЕ СЮДА
-        const BOT_TOKEN = '8428669539:AAFNS-BEk1-IFe026I3TRWbRDkED12IOxSM'; // Получите у @BotFather
-        const CHAT_ID = '-1003292541976'; // Например: -1001234567890
+        const BOT_TOKEN = 'ВАШ_ТОКЕН_БОТА'; // Получите у @BotFather
+        const CHAT_ID = 'ВАШ_CHAT_ID_КАНАЛА'; // Например: -1001234567890
 
         const IveriaBot = () => {
             const [currentView, setCurrentView] = useState('main');
@@ -432,16 +432,16 @@
                                 <input
                                     type="text"
                                     placeholder="Ваше имя"
-                                    value={userName}
-                                    onChange={(e) => setUserName(e.target.value)}
+                                    defaultValue={userName}
+                                    onBlur={(e) => setUserName(e.target.value)}
                                     className="w-full p-3 border-2 border-gray-200 rounded-lg mb-3 focus:border-red-500 outline-none"
                                 />
                                 
                                 <input
                                     type="tel"
                                     placeholder="Телефон: +7 (___) ___-__-__"
-                                    value={userPhone}
-                                    onChange={(e) => setUserPhone(e.target.value)}
+                                    defaultValue={userPhone}
+                                    onBlur={(e) => setUserPhone(e.target.value)}
                                     className="w-full p-3 border-2 border-gray-200 rounded-lg mb-3 focus:border-red-500 outline-none"
                                 />
                                 
@@ -472,8 +472,8 @@
                                     <input
                                         type="text"
                                         placeholder="Адрес доставки"
-                                        value={userAddress}
-                                        onChange={(e) => setUserAddress(e.target.value)}
+                                        defaultValue={userAddress}
+                                        onBlur={(e) => setUserAddress(e.target.value)}
                                         className="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-red-500 outline-none"
                                     />
                                 )}
