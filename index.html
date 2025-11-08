@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ресторан Иверия</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
+            overflow-x: hidden;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-bounce {
+            animation: bounce 1s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const IveriaBot = () => {
+            const [currentView, setCurrentView] = useState('main');
+            const [cart, setCart] = useState([]);
+            const [selectedCategory, setSelectedCategory] = useState(null);
+            const [favorites, setFavorites] = useState([]);
+            const [notification, setNotification] = useState('');
+
+            useEffect(() => {
+                // Инициализация Telegram Web App
+                if (window.Telegram?.WebApp) {
+                    const tg = window.Telegram.WebApp;
+                    tg.ready();
+                    tg.expand();
+                    tg.MainButton.hide();
+                }
+            }, []);
+
+            const menu = {
+                'Холодные закуски': [
+                    { id: 1, name: 'Ассорти мясное', price: 750, category: 'Холодные закуски', emoji: '🥩' },
+                    { id: 2, name: 'Баклажаны с орехами', price: 460, category: 'Холодные закуски', emoji: '🍆' },
+                    { id: 3, name: 'Пхали ассорти', price: 420, category: 'Холодные закуски', emoji: '🥗' },
+                    { id: 4, name: 'Соленья по-грузински', price: 500, category: 'Холодные закуски', emoji: '🥒' },
+                    { id: 5, name: 'Сациви', price: 480, category: 'Холодные закуски', emoji: '🍗' }
+                ],
+                'Салаты': [
+                    { id: 6, name: 'Грибная поляна', price: 510, category: 'Салаты', emoji: '🍄' },
+                    { id: 7, name: 'Цезарь с курицей', price: 510, category: 'Салаты', emoji: '🥗' },
+                    { id: 8, name: 'Цезарь с семгой', price: 720, category: 'Салаты', emoji: '🐟' },
+                    { id: 9, name: 'Цезарь с креветкой', price: 730, category: 'Салаты', emoji: '🦐' },
+                    { id: 10, name: 'Салхино', price: 520, category: 'Салаты', emoji: '🥙' }
+                ],
+                'Горячие закуски': [
+                    { id: 11, name: 'Аджапсандал', price: 390, category: 'Горячие закуски', emoji: '🍲' },
+                    { id: 12, name: 'Сыр сулугуни жареный', price: 380, category: 'Горячие закуски', emoji: '🧀' },
+                    { id: 13, name: 'Сырные шарики', price: 380, category: 'Горячие закуски', emoji: '🧀' },
+                    { id: 14, name: 'Кучмачи', price: 440, category: 'Горячие закуски', emoji: '🍖' },
+                    { id: 15, name: 'Лобио горячее по-грузински', price: 380, category: 'Горячие закуски', emoji: '🫘' }
+                ],
+                'Супы': [
+                    { id: 16, name: 'Хашлама с бульоном', price: 520, category: 'Супы', emoji: '🍜' },
+                    { id: 17, name: 'Бульон с яйцом', price: 240, category: 'Супы', emoji: '🥣' },
+                    { id: 18, name: 'Харчо по-грузински', price: 520, category: 'Супы', emoji: '🍲' },
+                    { id: 19, name: 'Лапша', price: 370, category: 'Супы', emoji: '🍜' },
+                    { id: 20, name: 'Солянка сборная', price: 440, category: 'Супы', emoji: '🥘' }
+                ],
+                'Шашлык': [
+                    { id: 21, name: 'Шашлык из свинины', price: 600, category: 'Шашлык', emoji: '🍢' },
+                    { id: 22, name: 'Шашлык из баранины', price: 1320, category: 'Шашлык', emoji: '🍢' },
+                    { id: 23, name: 'Шашлык из говядины', price: 1320, category: 'Шашлык', emoji: '🍢' },
+                    { id: 24, name: 'Люля из курицы', price: 270, category: 'Шашлык', emoji: '🍗' },
+                    { id: 25, name: 'Шампиньоны на мангале', price: 240, category: 'Шашлык', emoji: '🍄' }
+                ]
+            };
+
+            const showNotification = (msg) => {
+                setNotification(msg);
+                setTimeout(() => setNotification(''), 2000);
+            };
+
+            const addToCart = (dish) => {
+                const existing = cart.find(item => item.id === dish.id);
+                if (existing) {
+                    setCart(cart.map(item => 
+                        item.id === dish.id ? { ...item, quantity: item.quantity + 1 } : item
+                    ));
+                } else {
+                    setCart([...cart, { ...dish, quantity: 1 }]);
+                }
+                showNotification('Добавлено в корзину! 🛒');
+            };
+
+            const removeFromCart = (dishId) => {
+                setCart(cart.filter(item => item.id !== dishId));
+            };
+
+            const updateQuantity = (dishId, delta) => {
+                setCart(cart.map(item => {
+                    if (item.id === dishId) {
+                        const newQuantity = item.quantity + delta;
+                        return newQuantity > 0 ? { ...item, quantity: newQuantity } : item;
+                    }
+                    return item;
+                }).filter(item => item.quantity > 0));
+            };
+
+            const toggleFavorite = (dishId) => {
+                setFavorites(prev => 
+                    prev.includes(dishId) 
+                        ? prev.filter(id => id !== dishId)
+                        : [...prev, dishId]
+                );
+            };
+
+            const getTotalPrice = () => {
+                return cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+            };
+
+            const sendOrder = () => {
+                const orderText = cart.map(item => 
+                    `${item.emoji} ${item.name} x${item.quantity} = ${item.price * item.quantity}₽`
+                ).join('\n');
+                
+                const total = getTotalPrice();
+                const message = `🛒 Новый заказ!\n\n${orderText}\n\n💰 Итого: ${total}₽`;
+                
+                if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.sendData(JSON.stringify({ order: cart, total }));
+                }
+                
+                showNotification('Заказ отправлен! 📞');
+            };
+
+            const MainView = () => (
+                <div className="space-y-4">
+                    <div className="bg-gradient-to-br from-red-600 via-red-700 to-amber-700 text-white p-6 rounded-2xl shadow-lg">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                                <div className="text-4xl">👨‍🍳</div>
+                                <div>
+                                    <h1 className="text-3xl font-bold">Иверия</h1>
+                                    <p className="text-red-100 text-sm">Грузинская кухня</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1 bg-white/20 px-3 py-1.5 rounded-lg backdrop-blur">
+                                <span className="text-yellow-300">⭐</span>
+                                <span className="font-bold">4.5</span>
+                            </div>
+                        </div>
+                        <div className="bg-white/10 backdrop-blur p-3 rounded-xl border border-white/20">
+                            <div className="flex items-center gap-2 text-yellow-200 text-sm font-medium">
+                                <span>⏰</span>
+                                <span>Пн−пт с 12 до 15: скидка 15% на всё меню! 🎉</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <button
+                            onClick={() => setCurrentView('menu')}
+                            className="bg-gradient-to-br from-amber-500 to-orange-600 text-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all active:scale-95"
+                        >
+                            <div className="text-4xl mb-2">🍽️</div>
+                            <p className="font-bold text-lg">Меню</p>
+                        </button>
+                        
+                        <button
+                            onClick={() => setCurrentView('info')}
+                            className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all active:scale-95"
+                        >
+                            <div className="text-4xl mb-2">📍</div>
+                            <p className="font-bold text-lg">Контакты</p>
+                        </button>
+                        
+                        <button
+                            onClick={() => setCurrentView('services')}
+                            className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all active:scale-95"
+                        >
+                            <div className="text-4xl mb-2">📅</div>
+                            <p className="font-bold text-lg">Услуги</p>
+                        </button>
+                        
+                        <button
+                            onClick={() => setCurrentView('cart')}
+                            className="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all active:scale-95 relative"
+                        >
+                            <div className="text-4xl mb-2">🛒</div>
+                            <p className="font-bold text-lg">Корзина</p>
+                            {cart.length > 0 && (
+                                <span className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                                    {cart.length}
+                                </span>
+                            )}
+                        </button>
+                    </div>
+
+                    <div className="bg-gradient-to-r from-red-50 to-amber-50 p-4 rounded-xl border border-red-200">
+                        <div className="flex items-start gap-3">
+                            <span className="text-xl">⏰</span>
+                            <div className="text-sm">
+                                <p className="font-bold text-red-800 mb-1">Время работы:</p>
+                                <p className="text-red-700">Пн — Чт: 10:00–22:00</p>
+                                <p className="text-red-700">Пт — Вс: 11:00–24:00</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const MenuView = () => (
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-2xl font-bold text-gray-800">Меню</h2>
+                        <button
+                            onClick={() => {
+                                setCurrentView('main');
+                                setSelectedCategory(null);
+                            }}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition text-2xl"
+                        >
+                            ❌
+                        </button>
+                    </div>
+
+                    {!selectedCategory ? (
+                        <div className="grid grid-cols-1 gap-3">
+                            {Object.keys(menu).map((category, idx) => (
+                                <button
+                                    key={category}
+                                    onClick={() => setSelectedCategory(category)}
+                                    className="bg-gradient-to-r from-white to-gray-50 p-5 rounded-xl shadow-md hover:shadow-lg transition-all border-2 border-gray-100 hover:border-red-300 text-left group"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="font-bold text-lg text-gray-800 group-hover:text-red-600 transition">
+                                                {category}
+                                            </p>
+                                            <p className="text-sm text-gray-500">{menu[category].length} блюд</p>
+                                        </div>
+                                        <div className="text-3xl group-hover:scale-110 transition-transform">
+                                            {['🥩', '🥗', '🍲', '🍜', '🍢'][idx]}
+                                        </div>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => setSelectedCategory(null)}
+                                className="text-red-600 font-medium hover:text-red-700 flex items-center gap-2"
+                            >
+                                ← Назад к категориям
+                            </button>
+                            
+                            {menu[selectedCategory].map(dish => (
+                                <div
+                                    key={dish.id}
+                                    className="bg-white p-4 rounded-xl shadow-md border-2 border-gray-100 hover:border-red-200 transition-all"
+                                >
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="text-2xl">{dish.emoji}</span>
+                                                <h3 className="font-bold text-lg text-gray-800">{dish.name}</h3>
+                                            </div>
+                                            <p className="text-2xl font-bold text-red-600">{dish.price} ₽</p>
+                                        </div>
+                                        <button
+                                            onClick={() => toggleFavorite(dish.id)}
+                                            className="p-2 hover:bg-red-50 rounded-lg transition text-2xl"
+                                        >
+                                            {favorites.includes(dish.id) ? '❤️' : '🤍'}
+                                        </button>
+                                    </div>
+                                    
+                                    <button
+                                        onClick={() => addToCart(dish)}
+                                        className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white py-3 rounded-lg font-bold hover:from-red-600 hover:to-red-700 transition-all shadow-md hover:shadow-lg active:scale-95"
+                                    >
+                                        Добавить в корзину
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+
+            const CartView = () => (
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-2xl font-bold text-gray-800">Корзина</h2>
+                        <button
+                            onClick={() => setCurrentView('main')}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition text-2xl"
+                        >
+                            ❌
+                        </button>
+                    </div>
+
+                    {cart.length === 0 ? (
+                        <div className="text-center py-12">
+                            <div className="text-6xl mb-4">🛒</div>
+                            <p className="text-gray-500 text-lg">Корзина пуста</p>
+                            <button
+                                onClick={() => setCurrentView('menu')}
+                                className="mt-4 bg-red-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-red-600 transition"
+                            >
+                                Перейти в меню
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="space-y-3">
+                                {cart.map(item => (
+                                    <div key={item.id} className="bg-white p-4 rounded-xl shadow-md border-2 border-gray-100">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-2xl">{item.emoji}</span>
+                                                <div>
+                                                    <h3 className="font-bold text-gray-800">{item.name}</h3>
+                                                    <p className="text-red-600 font-bold">{item.price} ₽</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => removeFromCart(item.id)}
+                                                className="p-2 hover:bg-red-50 rounded-lg transition text-red-500 text-xl"
+                                            >
+                                                ❌
+                                            </button>
+                                        </div>
+                                        
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3 bg-gray-100 rounded-lg p-1">
+                                                <button
+                                                    onClick={() => updateQuantity(item.id, -1)}
+                                                    className="p-2 hover:bg-white rounded-lg transition font-bold text-xl"
+                                                >
+                                                    −
+                                                </button>
+                                                <span className="font-bold w-8 text-center">{item.quantity}</span>
+                                                <button
+                                                    onClick={() => updateQuantity(item.id, 1)}
+                                                    className="p-2 hover:bg-white rounded-lg transition font-bold text-xl"
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
+                                            <p className="font-bold text-lg">{item.price * item.quantity} ₽</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="bg-gradient-to-br from-red-50 to-amber-50 p-5 rounded-xl border-2 border-red-200">
+                                <div className="flex items-center justify-between mb-4">
+                                    <span className="text-lg font-medium text-gray-700">Итого:</span>
+                                    <span className="text-3xl font-bold text-red-600">{getTotalPrice()} ₽</span>
+                                </div>
+                                <button
+                                    onClick={sendOrder}
+                                    className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 rounded-xl font-bold text-lg hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl active:scale-95"
+                                >
+                                    Оформить заказ
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </div>
+            );
+
+            const InfoView = () => (
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-2xl font-bold text-gray-800">Контакты</h2>
+                        <button
+                            onClick={() => setCurrentView('main')}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition text-2xl"
+                        >
+                            ❌
+                        </button>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-red-500 to-red-600 text-white p-6 rounded-2xl shadow-lg">
+                        <h3 className="text-2xl font-bold mb-4">Ресторан Иверия</h3>
+                        <div className="space-y-3">
+                            <div className="flex items-start gap-3 bg-white/10 backdrop-blur p-3 rounded-lg">
+                                <span className="text-xl">📍</span>
+                                <p>г Аксай, Вокзальный спуск, 8, Административное здание</p>
+                            </div>
+                            
+                            <a 
+                                href="tel:+79001212927"
+                                className="flex items-center gap-3 bg-white/10 backdrop-blur p-3 rounded-lg hover:bg-white/20 transition"
+                            >
+                                <span className="text-xl">📞</span>
+                                <p>+7‒900‒121‒29‒27</p>
+                            </a>
+                            
+                            <a 
+                                href="https://иверия.com"
+                                className="flex items-center gap-3 bg-white/10 backdrop-blur p-3 rounded-lg hover:bg-white/20 transition"
+                            >
+                                <span className="text-xl">🌐</span>
+                                <p>иверия.com</p>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-5 rounded-xl shadow-md border-2 border-gray-100">
+                        <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                            <span>⏰</span>
+                            Режим работы
+                        </h3>
+                        <div className="space-y-2 text-gray-700">
+                            <div className="flex justify-between">
+                                <span>Понедельник — Четверг</span>
+                                <span className="font-medium">10:00–22:00</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Пятница — Воскресенье</span>
+                                <span className="font-medium">11:00–24:00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-5 rounded-xl border-2 border-amber-200">
+                        <h3 className="font-bold text-lg mb-3 text-amber-800">Способы оплаты</h3>
+                        <div className="flex gap-3">
+                            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg">
+                                <span>💵</span>
+                                <span className="text-sm font-medium">Наличные</span>
+                            </div>
+                            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg">
+                                <span>💳</span>
+                                <span className="text-sm font-medium">Карта</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const ServicesView = () => (
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-2xl font-bold text-gray-800">Услуги</h2>
+                        <button
+                            onClick={() => setCurrentView('main')}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition text-2xl"
+                        >
+                            ❌
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-5 rounded-xl shadow-lg">
+                            <div className="text-4xl mb-2">📅</div>
+                            <p className="font-bold">Бронирование столиков</p>
+                        </div>
+                        
+                        <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-5 rounded-xl shadow-lg">
+                            <div className="text-4xl mb-2">🛒</div>
+                            <p className="font-bold">Заказ на вынос</p>
+                        </div>
+                        
+                        <div className="bg-gradient-to-br from-pink-500 to-pink-600 text-white p-5 rounded-xl shadow-lg">
+                            <div className="text-4xl mb-2">🎵</div>
+                            <p className="font-bold">Живая музыка</p>
+                        </div>
+                        
+                        <div className="bg-gradient-to-br from-amber-500 to-orange-600 text-white p-5 rounded-xl shadow-lg">
+                            <div className="text-4xl mb-2">👥</div>
+                            <p className="font-bold">Банкеты</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-5 rounded-xl shadow-md border-2 border-gray-100">
+                        <h3 className="font-bold text-lg mb-3 text-gray-800">Вместимость</h3>
+                        <p className="text-gray-700 mb-2">До <span className="font-bold text-red-600">265 мест</span></p>
+                        <p className="text-sm text-gray-600">Средний чек: 2300 ₽</p>
+                    </div>
+
+                    <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white p-5 rounded-xl shadow-lg">
+                        <h3 className="font-bold text-lg mb-2">Поминальные обеды</h3>
+                        <p className="text-gray-300 text-sm">Организуем поминальные обеды с учетом всех традиций</p>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-red-50 to-amber-50 p-5 rounded-xl border-2 border-red-200">
+                        <h3 className="font-bold text-lg mb-2 text-gray-800">Кухня</h3>
+                        <div className="flex gap-2">
+                            <span className="bg-red-500 text-white px-4 py-2 rounded-lg font-medium">Грузинская</span>
+                            <span className="bg-blue-500 text-white px-4 py-2 rounded-lg font-medium">Европейская</span>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="max-w-md mx-auto bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen p-4">
+                    {currentView === 'main' && <MainView />}
+                    {currentView === 'menu' && <MenuView />}
+                    {currentView === 'cart' && <CartView />}
+                    {currentView === 'info' && <InfoView />}
+                    {currentView === 'services' && <ServicesView />}
+
+                    {notification && (
+                        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg font-bold z-50 animate-bounce">
+                            {notification}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        ReactDOM.render(<IveriaBot />, document.getElementById('root'));
+    </script>
+</body>
+</html>
